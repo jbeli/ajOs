@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>.\os;.\peripherals</IncludePath>
+              <IncludePath>.\os;.\peripherals;.\conf</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -394,6 +394,41 @@
               <FileType>5</FileType>
               <FilePath>.\os\osKernel.h</FilePath>
             </File>
+            <File>
+              <FileName>osCfg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\os\osCfg.c</FilePath>
+            </File>
+            <File>
+              <FileName>osCfg.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\os\osCfg.h</FilePath>
+            </File>
+            <File>
+              <FileName>osCounter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\os\osCounter.c</FilePath>
+            </File>
+            <File>
+              <FileName>osCounter.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\os\osCounter.h</FilePath>
+            </File>
+            <File>
+              <FileName>osTask.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\os\osTask.c</FilePath>
+            </File>
+            <File>
+              <FileName>osTask.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\os\osTask.h</FilePath>
+            </File>
+            <File>
+              <FileName>osTypes.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\os\osTypes.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -418,6 +453,16 @@
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\main.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>conf</GroupName>
+          <Files>
+            <File>
+              <FileName>compiler.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\conf\compiler.h</FilePath>
             </File>
           </Files>
         </Group>
