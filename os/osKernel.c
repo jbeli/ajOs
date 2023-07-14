@@ -1,0 +1,168 @@
+
+#include "osKernel.h"
+
+/*************** START DEFINE SECTION ****************/
+
+#define NUM_OF_THREADS	3
+#define STACKSIZE				50
+#define BUS_FREQ				16000000
+#define SYSPRI3					(*((volatile uint32_t *)0xE000ED20))
+#define NVIC_INT_CTRL_R		(*((volatile uint32_t *)0xE000ED04))
+#define PERIOD				100
+	
+/*************** END DEFINE SECTION *****************/
+
+
+
+
+/*************** START GLOBAL VARIABLES  ****************/
+
+static uint32_t MILLIS_PRESCALER ;
+
+struct tcb_def {
+	int32_t *stack_pointer ;
+	struct tcb_def *next_tcb ;
+} ;
+
+typedef struct tcb_def tcbType ;
+
+static tcbType tcbs[NUM_OF_THREADS] ;
+static tcbType *current_tcb ;
+
+static int32_t thread_stack[NUM_OF_THREADS][STACKSIZE];
+
+
+
+
+/*************** END GLOABAL VARIABLES  *****************/
+
+
+/*************** START FUNCTIONS SECTION ****************/
+void osSchedulerLaunch(void) ;
+
+/*************** END FUNCTIONS SECTION *****************/
+
+/*************** START FUNCTIONS SECTION ****************/
+
+void osKernelStackInit(int thread_i)
+{
+	tcbs[thread_i].stack_pointer = &thread_stack[thread_i][STACKSIZE -16];
+	thread_stack[thread_i][STACKSIZE -1] = 0x01000000 ;
+	
+	
+	thread_stack[thread_i][STACKSIZE -3] = 0xAAAAAAAA ; /* LR R14 */
+	thread_stack[thread_i][STACKSIZE -4] = 0xAAAAAAAA ; /* R12 */
+	thread_stack[thread_i][STACKSIZE -5] = 0xAAAAAAAA ; /* R3 */
+	thread_stack[thread_i][STACKSIZE -6] = 0xAAAAAAAA ; /* R2 */
+	thread_stack[thread_i][STACKSIZE -7] = 0xAAAAAAAA ; /* R1 */
+	thread_stack[thread_i][STACKSIZE -8] = 0xAAAAAAAA ; /* R0 */
+
+	thread_stack[thread_i][STACKSIZE -9] = 0xAAAAAAAA ; /* R11 */
+	thread_stack[thread_i][STACKSIZE -10] = 0xAAAAAAAA ; /* R10 */
+	thread_stack[thread_i][STACKSIZE -11] = 0xAAAAAAAA ; /* R9 */
+	thread_stack[thread_i][STACKSIZE -12] = 0xAAAAAAAA ; /* R8 */
+	thread_stack[thread_i][STACKSIZE -13] = 0xAAAAAAAA ; /* R7 */
+	thread_stack[thread_i][STACKSIZE -14] = 0xAAAAAAAA ; /* R6 */
+	thread_stack[thread_i][STACKSIZE -15] = 0xAAAAAAAA ; /* R5 */
+	thread_stack[thread_i][STACKSIZE -16] = 0xAAAAAAAA ; /* R4 */
+	
+}
+
+int osKernelAddThread(void (*task0)(void), void (*task1)(void), void(*task2)(void))
+{
+
+    // This is a critical code section that cannot be interrupted. Interrupts
+    // are then disabled while the TCB linked list is created.
+    __disable_irq();
+
+    // Circular linked list is required; this is done by linking
+    // TCB 0 --> 1, TCB 1 --> 2, TCB 2 --> 0
+    tcbs[0].next_tcb = &tcbs[1];
+    tcbs[1].next_tcb = &tcbs[2];
+    tcbs[2].next_tcb = &tcbs[0];
+
+    // Initialize the stack for a thread and copy the function pointer to
+    // address that will be copied to the PC. This is so that the thread
+    // will begin executing when it is first scheduled to execute.
+    osKernelStackInit(0);
+    thread_stack[0][STACKSIZE - 2] = (int32_t)(task0); // Type cast from void
+                                                         // to numerical addr.
+
+    osKernelStackInit(1);
+    thread_stack[1][STACKSIZE - 2] = (int32_t)(task1);
+
+    osKernelStackInit(2);
+    thread_stack[2][STACKSIZE - 2] = (int32_t)(task2);
+
+    // Initially points to the first thread:
+    current_tcb = &tcbs[0];
+
+    // Critical section is now done so interrupts can be enabled again:
+    __enable_irq();
+
+    return 1;
+
+
+}
+
+void osKernelInit(void)
+{
+	// 16 000 000 per second 
+	// for an action to occur every 1 ms
+	// 16 000 000 /1000 --> 16 000 value of reload register we start decrementing from 15 999 (16 000 -1 ) to so each 
+	// 0.0000625ms  and then SysTick_Handler will occur 
+	MILLIS_PRESCALER = (BUS_FREQ/1000) ;
+}
+
+/*
+	quanta =x nunmber of milliseconds 
+*/
+void osKernelLaunch(uint32_t quanta)
+{
+	SysTick->CTRL = 0x00 ;
+	SysTick->VAL  = 0x00 ;
+	SysTick->LOAD = (quanta * MILLIS_PRESCALER) -1 ;
+	SYSPRI3 = (SYSPRI3 &0x00FFFFFF) | 0xE0000000 ;
+	SysTick->CTRL = 0x00000007 ;
+	
+	osSchedulerLaunch() ;
+	
+}
+
+
+__attribute__((naked)) void SysTick_Handler(void)
+{
+	__ASM("CPSID I") ;
+	__ASM("PUSH    {R4-R11}") ;
+	__ASM("LDR     R0, =current_tcb") ;
+	__ASM("LDR     R1, [R0]") ;
+	__ASM("STR     SP, [R1]") ;
+	__ASM("LDR		R1, [R1, #4]") ;
+	__ASM("STR		R1, [R0]") ;
+	__ASM("LDR		SP, [R1]") ;
+	__ASM("POP 	{R4-R11}") ;
+	
+	__ASM("CPSIE	I") ;
+	__ASM("BX		LR") ;
+
+	
+	
+	
+}
+
+void osSchedulerLaunch(void)
+{
+	__ASM(" LDR     R0, =current_tcb") ;
+	__ASM("LDR     R2, [R0] ") ;
+	__ASM(" LDR     SP, [R2]") ;
+	__ASM("POP     {R4-R11}") ;
+	__ASM("POP     {R0-R3}") ;
+	__ASM("POP		{R12}") ;
+	__ASM("ADD     SP, SP, #4") ;
+	__ASM("POP     {LR}") ;
+	__ASM("ADD     SP, SP, #4 ") ;
+	
+	__ASM("CPSIE	I") ;
+	__ASM("BX		LR") ;
+
+}
