@@ -18,6 +18,10 @@ __attribute__((noreturn)) void Task0(void)
 	{
 		count0 ++ ;
 		toggleLDE(LD6_blue) ;
+		if(count0 == 50)
+		{
+			osThreadYield() ;
+		}
 	}
 
 }

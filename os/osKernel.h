@@ -9,6 +9,6 @@ void osKernelStackInit(int thread_i);
 void osKernelInit(void) ;
 int osKernelAddThread(void (*task0)(void), void (*task1)(void), void(*task2)(void)) ;
 void osKernelLaunch(uint32_t quanta) ;
-
+void osThreadYield(void);
 
 #endif

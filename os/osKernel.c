@@ -6,8 +6,9 @@
 #define NUM_OF_THREADS	3
 #define STACKSIZE				50
 #define BUS_FREQ				16000000
-#define SYSPRI3					(*((volatile uint32_t *)0xE000ED20))
+#define SYSPRI3					  (*((volatile uint32_t *)0xE000ED20))
 #define NVIC_INT_CTRL_R		(*((volatile uint32_t *)0xE000ED04))
+
 #define PERIOD				100
 	
 /*************** END DEFINE SECTION *****************/
@@ -129,6 +130,11 @@ void osKernelLaunch(uint32_t quanta)
 	
 }
 
+void osThreadYield(void)
+{
+	SysTick->VAL = 0;
+	NVIC_INT_CTRL_R = 0x04000000 ;
+}
 
 __attribute__((naked)) void SysTick_Handler(void)
 {
