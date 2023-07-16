@@ -395,16 +395,6 @@
               <FilePath>.\os\osKernel.h</FilePath>
             </File>
             <File>
-              <FileName>osCfg.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\os\osCfg.c</FilePath>
-            </File>
-            <File>
-              <FileName>osCfg.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\os\osCfg.h</FilePath>
-            </File>
-            <File>
               <FileName>osCounter.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\os\osCounter.c</FilePath>
@@ -428,6 +418,26 @@
               <FileName>osTypes.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\os\osTypes.h</FilePath>
+            </File>
+            <File>
+              <FileName>osRoundRobinCfg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\os\osRoundRobinCfg.c</FilePath>
+            </File>
+            <File>
+              <FileName>osRoundRobinCfg.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\os\osRoundRobinCfg.h</FilePath>
+            </File>
+            <File>
+              <FileName>osPeriodicScheduler.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\os\osPeriodicScheduler.c</FilePath>
+            </File>
+            <File>
+              <FileName>osPeriodicScheduler.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\os\osPeriodicScheduler.h</FilePath>
             </File>
           </Files>
         </Group>

@@ -139,6 +139,7 @@ typedef struct tcb_tag
   TaskStateType state;
   uint32_t* DeadBeefPtr;
   uint8_t priority;
+	uint16_t periodicity ;
   Task_Model_t Task_Model;
   EventMaskType Set_Event;
   EventMaskType Wait_Event;

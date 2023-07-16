@@ -10,7 +10,11 @@
 #define NVIC_INT_CTRL_R		(*((volatile uint32_t *)0xE000ED04))
 
 #define PERIOD				100
-	
+
+#ifdef PERIODIC_SCHEDULER
+#define OsCfg_MAX_NUM_OF_PERIODIC_TASKS 	2
+#endif
+
 /*************** END DEFINE SECTION *****************/
 
 
@@ -18,12 +22,32 @@
 
 /*************** START GLOBAL VARIABLES  ****************/
 
+
 static uint32_t MILLIS_PRESCALER ;
+
+
+typedef struct 
+{
+	taskT task ;
+	uint32_t period ;
+}periodicTaskT ;
+
+static periodicTaskT PeriodicTasks[OsCfg_MAX_NUM_OF_PERIODIC_TASKS] ;
+static uint32_t TimeMsec ;
+static uint32_t MaxPeriod ;
 
 struct tcb_def {
 	int32_t *stack_pointer ;
 	struct tcb_def *next_tcb ;
+	#ifdef PERIODIC_SCHEDULER_PRIO
+	uint32_t sleepTime ;
+	uint32_t blocked ;
+	uint32_t priority ;
+	#endif
+
+	
 } ;
+
 
 typedef struct tcb_def tcbType ;
 
@@ -33,7 +57,7 @@ static tcbType *current_tcb ;
 static int32_t thread_stack[NUM_OF_THREADS][STACKSIZE];
 
 
-
+static uint32_t period_tick ;
 
 /*************** END GLOABAL VARIABLES  *****************/
 
@@ -69,6 +93,86 @@ void osKernelStackInit(int thread_i)
 	
 }
 
+
+#ifdef PERIODIC_SCHEDULER
+
+StatusType osKernelAddPeriodicThreads()
+{
+	uint8_t i, minPeriod  ;
+	MaxPeriod = OsPSCfg_TCBs[0].periodicity ;
+	minPeriod = OsPSCfg_TCBs[0].periodicity ;
+	for (i=0 ; i<OsCfg_MAX_NUM_OF_PERIODIC_TASKS ; i++)
+	{
+		if(OsPSCfg_TCBs[i].periodicity > MaxPeriod) 
+		{
+			MaxPeriod = OsPSCfg_TCBs[i].periodicity ;
+		}
+	}
+	
+	for (i=0 ; i<OsCfg_MAX_NUM_OF_PERIODIC_TASKS ; i++)
+	{
+		if(OsPSCfg_TCBs[i].periodicity < MaxPeriod) 
+		{
+			minPeriod = OsPSCfg_TCBs[i].periodicity ;
+		}
+	}
+	if (MaxPeriod % minPeriod != 0 ) return 0 ;
+	for (i=0 ; i<OsCfg_MAX_NUM_OF_PERIODIC_TASKS ; i++)
+	{
+		PeriodicTasks[i].task = OsPSCfg_TCBs[i].Task_Ptr ;
+		PeriodicTasks[i].period = OsPSCfg_TCBs[i].periodicity ;
+	}
+	return E_OK ;
+}
+
+#endif 
+
+
+#ifdef PERIODIC_SCHEDULER_PRIO
+
+
+StatusType osKernelAddThreads(void)
+{
+	uint8_t i ;
+	__disable_irq() ;
+	
+	for (i= 0 ; i< OsCfg_MAX_NUM_OF_TASKS ; i++) 
+	{
+		tcbs[i].next_tcb = &tcbs[i+1] ;
+		if(i ==(OsCfg_MAX_NUM_OF_TASKS -1)) 
+		{
+			tcbs[i].next_tcb = &tcbs[0] ;
+		}
+	}
+	// this already defined in osPeriodicScheduler.c file need some clean up TO DO
+	for (i=0 ; i< OsCfg_MAX_NUM_OF_TASKS ; i++)
+	{
+		tcbs[i].blocked = 0 ;
+		tcbs[i].sleepTime = 0 ;
+	}
+	
+	return E_OK ;
+}
+#endif
+
+// this function to replace osKernelAddThread(void (*task0)(void), void (*task1)(void), void(*task2)(void))
+
+/*int osKernelAddThreaddraft()
+{
+	uint8_t i ;
+	__disable_irq() ;
+	for (i =0 ; i< OsCfg_MAX_NUM_OF_TASKS ; i++)
+	{
+		tcbs[i].next_tcb = &tcbs[i+1] ;
+		if(i ==(OsCfg_MAX_NUM_OF_TASKS -1)) 
+		{
+			tcbs[i].next_tcb = &tcbs[0] ;
+		}
+		osKernelStackInit(i);
+	}
+	return 1 ;
+}
+*/
 int osKernelAddThread(void (*task0)(void), void (*task1)(void), void(*task2)(void))
 {
 
@@ -136,6 +240,54 @@ void osThreadYield(void)
 	NVIC_INT_CTRL_R = 0x04000000 ;
 }
 
+#ifdef PERIODIC_SCHEDULER
+
+void osSchedulerPeriodicRR(void)
+{
+	if(TimeMsec < MaxPeriod) TimeMsec ++ ;
+	else
+	{
+		TimeMsec = 1 ;
+	}
+	uint8_t i ;
+	for (i = 0 ; i< OsCfg_MAX_NUM_OF_PERIODIC_TASKS ; i ++ )
+	{
+		if((TimeMsec % PeriodicTasks[i].period) == 0 && PeriodicTasks[i].task !=NULL)
+		{
+			PeriodicTasks[i].task() ;
+		}
+	}
+	current_tcb = current_tcb->next_tcb ;
+}
+#endif
+
+#ifdef PERIODIC_SCHEDULER_PRIO
+void osSchedulerPeriodicPrio(void)
+{
+
+}
+#endif
+
+#ifndef PERIODIC_SCHEDULER
+void osSchedulerRoundRobin(void)
+{
+	OsCnt_IncrSystemCounter() ;
+	if((OsCnt_GetSystemCounter() % 100) == 1)
+	{
+		(*periodicTask0)() ;
+		
+	}
+	
+	if((OsCnt_GetSystemCounter() % 200) == 1)
+	{
+		(*periodicTask1)() ;
+		
+	}
+	current_tcb = current_tcb->next_tcb ;
+}
+
+#endif
+
 __attribute__((naked)) void SysTick_Handler(void)
 {
 	__ASM("CPSID I") ;
@@ -143,8 +295,17 @@ __attribute__((naked)) void SysTick_Handler(void)
 	__ASM("LDR     R0, =current_tcb") ;
 	__ASM("LDR     R1, [R0]") ;
 	__ASM("STR     SP, [R1]") ;
+	
+	#ifdef PERIODIC_SCHEDULER
+	__ASM("PUSH {R0, LR}") ;
+	//__ASM("BL osSchedulerRoundRobin");
+	__ASM("BL osSchedulerPeriodicRR");
+	__ASM("POP {R0, LR}");
+	__ASM("LDR R1, [R0]");
+	#else
 	__ASM("LDR		R1, [R1, #4]") ;
-	__ASM("STR		R1, [R0]") ;
+	__ASM("STR		R1, [R0]") ;	
+	#endif 
 	__ASM("LDR		SP, [R1]") ;
 	__ASM("POP 	{R4-R11}") ;
 	

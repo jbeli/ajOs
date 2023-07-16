@@ -1,8 +1,9 @@
 --cpu=Cortex-M4.fp.sp
 ".\objects\oskernel.o"
-".\objects\oscfg.o"
 ".\objects\oscounter.o"
 ".\objects\ostask.o"
+".\objects\osroundrobincfg.o"
+".\objects\osperiodicscheduler.o"
 ".\objects\gpio.o"
 ".\objects\main.o"
 ".\objects\startup_stm32f407xx.o"

@@ -10,7 +10,8 @@
 
 #include <stm32f407xx.h>
 
-extern void SysTick_Init(void);
+extern uint32_t OsCnt_SystemCounter ;
+//extern void SysTick_Init(void);
 extern void OsCnt_IncrSystemCounter(void);
 extern uint32_t OsCnt_GetSystemCounter(void);
 
