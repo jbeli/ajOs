@@ -11,6 +11,12 @@
 
 #define PERIOD				100
 
+#define START_RAM		0x20000000
+#define RAM_SIZE		(112 + 16) *1024
+#define END_RAM			(START_RAM + END_RAM)
+
+#define TASK_SIZE_STACK 	1024 // 1kb for each task 
+
 #ifdef PERIODIC_SCHEDULER
 #define OsCfg_MAX_NUM_OF_PERIODIC_TASKS 	2
 #endif
@@ -71,6 +77,7 @@ void osSchedulerLaunch(void) ;
 
 void osKernelStackInit(int thread_i)
 {
+	uint32_t * __psp = (END_RAM - (thread_i+1)*TASK_SIZE_STACK) ;
 	tcbs[thread_i].stack_pointer = &thread_stack[thread_i][STACKSIZE -16];
 	thread_stack[thread_i][STACKSIZE -1] = 0x01000000 ;
 	
