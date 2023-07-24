@@ -13,7 +13,7 @@
 
 #define START_RAM		0x20000000
 #define RAM_SIZE		(112 + 16) *1024
-#define END_RAM			(START_RAM + END_RAM)
+#define END_RAM			(START_RAM + RAM_SIZE)
 
 #define TASK_SIZE_STACK 	1024 // 1kb for each task 
 
