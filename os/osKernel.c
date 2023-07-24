@@ -77,7 +77,7 @@ void osSchedulerLaunch(void) ;
 
 void osKernelStackInit(int thread_i)
 {
-	uint32_t * __psp = (END_RAM - (thread_i+1)*TASK_SIZE_STACK) ;
+	uint32_t * __psp = (START_RAM + (thread_i+1)*TASK_SIZE_STACK) ;
 	tcbs[thread_i].stack_pointer = &thread_stack[thread_i][STACKSIZE -16];
 	thread_stack[thread_i][STACKSIZE -1] = 0x01000000 ;
 	
