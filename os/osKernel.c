@@ -12,6 +12,7 @@
 
 #define PERIOD				100
 
+
 #ifdef PERIODIC_SCHEDULER
 #define OsCfg_MAX_NUM_OF_PERIODIC_TASKS 	2
 #endif
@@ -73,6 +74,7 @@ void osSchedulerLaunch(void) ;
 
 void osKernelStackInit(int thread_i)
 {
+
 	/*uint32_t* psp = (uint32_t*)(STACK_START + (thread_i+1)*STACKSIZE);
 	*(++psp) = 0x01000000u; // Dummy xPSR, just enable Thumb State bit;
   *(++psp) = (int32_t)(OsCfg_TCBs[thread_i].Task_Ptr); // PC
@@ -91,7 +93,7 @@ void osKernelStackInit(int thread_i)
   *(++psp) = 0x05050505u; // Dummy R5
   *(++psp) = 0x04040404u; // Dummy R4
 	*/
-	
+
 	tcbs[thread_i].stack_pointer = &thread_stack[thread_i][STACKSIZE -16];
 	thread_stack[thread_i][STACKSIZE -1] = 0x01000000 ;
 	
