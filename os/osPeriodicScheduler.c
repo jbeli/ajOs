@@ -16,7 +16,26 @@
 
 // uint8_t OsCfg_MAX_NUM_OF_PERIODIC_TASKS = 2 ;
 
+void OsTask_TaskA(void)
+{
 
+}
+void OsTask_TaskB(void)
+{
+
+}
+void periodicTask0(void)
+{
+
+}
+void OsTask_IdleMechanism(void)
+{
+}
+
+void periodicTask1(void)
+{
+
+}
 
 /*******************************************************************************
 	Task contol block table
@@ -36,3 +55,4 @@ tcb_t OsPSCfg_TCBs[2/*num of app tasks*/+1/*for Idle mechanism */] =
 	{0u, 0u, OsTask_IdleMechanism,     READY, NULL, 255u, 10, BASIC, 0u, 0u,
 	 0u, 1u, 0u }
 };
+

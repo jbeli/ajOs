@@ -4,15 +4,15 @@
 #include "stdint.h"
 #include "stm32f4xx.h"                  // Device header
 #include "osCounter.h"
+#include "OsSchedulerCfg.h"
+#include "OsCfg.h"
 
-#define PERIODIC_SCHEDULER
-//#define PERIODIC_SCHEDULER_PRIO
 
-#ifdef PERIODIC_SCHEDULER
-#include "osPeriodicScheduler.h"
-#else
-#include "osRoundRobinCfg.h"
-#endif
+#define RAM_START				(0x20000000u)
+#define RAM_SIZE				(128*1024) //128Kb
+#define RAM_END					((RAM_START) + (RAM_SIZE))
+#define STACK_START			RAM_START
+
 #define NULL 		(void *)0
 	
 typedef void(*taskT)(void) ;
@@ -22,12 +22,14 @@ void osKernelInit(void) ;
 int osKernelAddThread(void (*task0)(void), void (*task1)(void), void(*task2)(void)) ;
 void osKernelLaunch(uint32_t quanta) ;
 void osThreadYield(void);
-int osKernelAddThreaddraft(void) ;
+StatusType osKernelAddThreaddraft(void) ;
+
 
 /********************* PERIODIC TASKS*****************/
-
+#ifdef PERIODIC_SCHEDULER
 void periodicTask0(void) ;
 void periodicTask1(void) ;
 StatusType osKernelAddPeriodicThreads() ;
+#endif
 
 #endif

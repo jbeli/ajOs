@@ -15,7 +15,7 @@
 /*******************************************************************************
 	Num of app tasks
 *******************************************************************************/
-//const uint8_t OsCfg_MAX_NUM_OF_TASKS = 	3U;
+uint8_t OsCfg_MAX_NUM_OF_TASKS = 	3U;
 
 /*******************************************************************************
 	Num of system alarms
@@ -80,19 +80,5 @@ const uint32_t OsCfg_StackSize[3] =
 	50		/*TaskC*/
 };
 
-void OsTask_TaskA(void)
-{
-}
 
-void OsTask_TaskB(void)
-{
-}
-
-void OsTask_TaskC(void)
-{
-}
-
-void OsTask_IdleMechanism(void)
-{
-}
 

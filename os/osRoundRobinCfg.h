@@ -12,7 +12,7 @@
 #include "osTypes.h"
 
 
-#define PERIODIC_SCHEDULER 
+//#define PERIODIC_SCHEDULER 
 
 /*******************************************************************************
 	Extern number of App Tasks Declaration

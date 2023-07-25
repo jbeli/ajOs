@@ -420,24 +420,19 @@
               <FilePath>.\os\osTypes.h</FilePath>
             </File>
             <File>
-              <FileName>osRoundRobinCfg.c</FileName>
+              <FileName>OsCfg.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\os\osRoundRobinCfg.c</FilePath>
+              <FilePath>.\os\OsCfg.c</FilePath>
             </File>
             <File>
-              <FileName>osRoundRobinCfg.h</FileName>
+              <FileName>OsCfg.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\os\osRoundRobinCfg.h</FilePath>
+              <FilePath>.\os\OsCfg.h</FilePath>
             </File>
             <File>
-              <FileName>osPeriodicScheduler.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\os\osPeriodicScheduler.c</FilePath>
-            </File>
-            <File>
-              <FileName>osPeriodicScheduler.h</FileName>
+              <FileName>OsSchedulerCfg.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\os\osPeriodicScheduler.h</FilePath>
+              <FilePath>.\os\OsSchedulerCfg.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -464,6 +459,11 @@
               <FileType>1</FileType>
               <FilePath>.\main.c</FilePath>
             </File>
+            <File>
+              <FileName>SWC_1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\SWC_1.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -473,6 +473,16 @@
               <FileName>compiler.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\conf\compiler.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Types</GroupName>
+          <Files>
+            <File>
+              <FileName>TaskTypes.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\TaskTypes.h</FilePath>
             </File>
           </Files>
         </Group>

@@ -1,6 +1,7 @@
 
 #include "osKernel.h"
 
+
 /*************** START DEFINE SECTION ****************/
 
 #define NUM_OF_THREADS	3
@@ -25,7 +26,7 @@
 
 static uint32_t MILLIS_PRESCALER ;
 
-
+#ifdef PERIODIC_SCHEDULER
 typedef struct 
 {
 	taskT task ;
@@ -36,6 +37,7 @@ static periodicTaskT PeriodicTasks[OsCfg_MAX_NUM_OF_PERIODIC_TASKS] ;
 static uint32_t TimeMsec ;
 static uint32_t MaxPeriod ;
 
+#endif
 struct tcb_def {
 	int32_t *stack_pointer ;
 	struct tcb_def *next_tcb ;
@@ -71,25 +73,58 @@ void osSchedulerLaunch(void) ;
 
 void osKernelStackInit(int thread_i)
 {
+	/*uint32_t* psp = (uint32_t*)(STACK_START + (thread_i+1)*STACKSIZE);
+	*(++psp) = 0x01000000u; // Dummy xPSR, just enable Thumb State bit;
+  *(++psp) = (int32_t)(OsCfg_TCBs[thread_i].Task_Ptr); // PC
+  *(++psp) = 0xFFFFFFFDu; // LR with EXC_RETURN to return to Thread using PSP
+  *(++psp) = 0x12121212u; // Dummy R12
+  *(++psp) = 0x03030303u; // Dummy R3
+  *(++psp) = 0x02020202u; // Dummy R2
+  *(++psp) = 0x01010101u; // Dummy R1
+  *(++psp) = 0x00000000u; // Dummy R0
+  *(++psp) = 0x11111111u; // Dummy R11
+  *(++psp) = 0x10101010u; // Dummy R10
+  *(++psp) = 0x09090909u; // Dummy R9
+  *(++psp) = 0x08080808u; // Dummy R8
+  *(++psp) = 0x07070707u; // Dummy R7
+  *(++psp) = 0x06060606u; // Dummy R6
+  *(++psp) = 0x05050505u; // Dummy R5
+  *(++psp) = 0x04040404u; // Dummy R4
+	*/
+	
 	tcbs[thread_i].stack_pointer = &thread_stack[thread_i][STACKSIZE -16];
 	thread_stack[thread_i][STACKSIZE -1] = 0x01000000 ;
 	
 	
-	thread_stack[thread_i][STACKSIZE -3] = 0xAAAAAAAA ; /* LR R14 */
-	thread_stack[thread_i][STACKSIZE -4] = 0xAAAAAAAA ; /* R12 */
-	thread_stack[thread_i][STACKSIZE -5] = 0xAAAAAAAA ; /* R3 */
-	thread_stack[thread_i][STACKSIZE -6] = 0xAAAAAAAA ; /* R2 */
-	thread_stack[thread_i][STACKSIZE -7] = 0xAAAAAAAA ; /* R1 */
-	thread_stack[thread_i][STACKSIZE -8] = 0xAAAAAAAA ; /* R0 */
+	thread_stack[thread_i][STACKSIZE -3] = 0xAAAAAAAF ; /* LR R14 */
+	thread_stack[thread_i][STACKSIZE -4] = 0xAAAAAAA9 ; /* R12 */
+	thread_stack[thread_i][STACKSIZE -5] = 0xAAAAAAA8 ; /* R3 */
+	thread_stack[thread_i][STACKSIZE -6] = 0xAAAAAAA7 ; /* R2 */
+	thread_stack[thread_i][STACKSIZE -7] = 0xAAAAAAA6 ; /* R1 */
+	thread_stack[thread_i][STACKSIZE -8] = 0xAAAAAAA5 ; /* R0 */
 
-	thread_stack[thread_i][STACKSIZE -9] = 0xAAAAAAAA ; /* R11 */
-	thread_stack[thread_i][STACKSIZE -10] = 0xAAAAAAAA ; /* R10 */
-	thread_stack[thread_i][STACKSIZE -11] = 0xAAAAAAAA ; /* R9 */
-	thread_stack[thread_i][STACKSIZE -12] = 0xAAAAAAAA ; /* R8 */
-	thread_stack[thread_i][STACKSIZE -13] = 0xAAAAAAAA ; /* R7 */
+	thread_stack[thread_i][STACKSIZE -9] = 0xAAAAAAA4 ; /* R11 */
+	thread_stack[thread_i][STACKSIZE -10] = 0xAAAAAAA3 ; /* R10 */
+	thread_stack[thread_i][STACKSIZE -11] = 0xAAAAAAA2 ; /* R9 */
+	thread_stack[thread_i][STACKSIZE -12] = 0xAAAAAAA1 ; /* R8 */
+	thread_stack[thread_i][STACKSIZE -13] = 0xAAAAAAA0 ; /* R7 */
 	thread_stack[thread_i][STACKSIZE -14] = 0xAAAAAAAA ; /* R6 */
 	thread_stack[thread_i][STACKSIZE -15] = 0xAAAAAAAA ; /* R5 */
 	thread_stack[thread_i][STACKSIZE -16] = 0xAAAAAAAA ; /* R4 */
+	
+}
+uint32_t __uCurrentTaskIdx = 0;
+uint32_t __puTasksPSP[NUM_OF_THREADS] = {0};
+
+uint32_t get_current_psp() {
+  return __puTasksPSP[__uCurrentTaskIdx];
+}
+
+void save_current_psp(uint32_t psp) {
+  __puTasksPSP[__uCurrentTaskIdx] = psp;
+}
+void osInitTaskStack(uint8_t threadID)
+{
 	
 }
 
@@ -157,10 +192,12 @@ StatusType osKernelAddThreads(void)
 
 // this function to replace osKernelAddThread(void (*task0)(void), void (*task1)(void), void(*task2)(void))
 
-/*int osKernelAddThreaddraft()
+StatusType osKernelAddThreaddraft()
 {
 	uint8_t i ;
+	// Enter Critical Section 
 	__disable_irq() ;
+	
 	for (i =0 ; i< OsCfg_MAX_NUM_OF_TASKS ; i++)
 	{
 		tcbs[i].next_tcb = &tcbs[i+1] ;
@@ -169,10 +206,16 @@ StatusType osKernelAddThreads(void)
 			tcbs[i].next_tcb = &tcbs[0] ;
 		}
 		osKernelStackInit(i);
+		thread_stack[i][STACKSIZE - 2] = (int32_t)(OsCfg_TCBs[i].Task_Ptr);
 	}
-	return 1 ;
+	// Initially points to the first thread:
+    current_tcb = &tcbs[0];
+    // Critical section is now done so interrupts can be enabled again:
+    __enable_irq();	
+	return E_OK ;
 }
-*/
+
+/*
 int osKernelAddThread(void (*task0)(void), void (*task1)(void), void(*task2)(void))
 {
 
@@ -209,6 +252,7 @@ int osKernelAddThread(void (*task0)(void), void (*task1)(void), void(*task2)(voi
 
 
 }
+*/
 
 void osKernelInit(void)
 {
@@ -271,7 +315,7 @@ void osSchedulerPeriodicPrio(void)
 #ifndef PERIODIC_SCHEDULER
 void osSchedulerRoundRobin(void)
 {
-	OsCnt_IncrSystemCounter() ;
+	/*OsCnt_IncrSystemCounter() ;
 	if((OsCnt_GetSystemCounter() % 100) == 1)
 	{
 		(*periodicTask0)() ;
@@ -283,6 +327,7 @@ void osSchedulerRoundRobin(void)
 		(*periodicTask1)() ;
 		
 	}
+	*/
 	current_tcb = current_tcb->next_tcb ;
 }
 
@@ -291,7 +336,7 @@ void osSchedulerRoundRobin(void)
 __attribute__((naked)) void SysTick_Handler(void)
 {
 	__ASM("CPSID I") ;
-	__ASM("PUSH    {R4-R11}") ;
+	__ASM("PUSH    {R4-R11}") ; // R0, R1, R2, R3, R12, LR, PC, PSR are automatically saved in the stack memory
 	__ASM("LDR     R0, =current_tcb") ;
 	__ASM("LDR     R1, [R0]") ;
 	__ASM("STR     SP, [R1]") ;
