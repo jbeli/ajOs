@@ -26,7 +26,6 @@
 
 
 static uint32_t MILLIS_PRESCALER ;
-
 #ifdef PERIODIC_SCHEDULER
 typedef struct 
 {
@@ -40,7 +39,7 @@ static uint32_t MaxPeriod ;
 
 #endif
 struct tcb_def {
-	int32_t *stack_pointer ;
+	uint32_t *stack_pointer ;
 	struct tcb_def *next_tcb ;
 	#ifdef PERIODIC_SCHEDULER_PRIO
 	uint32_t sleepTime ;
@@ -57,10 +56,23 @@ typedef struct tcb_def tcbType ;
 static tcbType tcbs[NUM_OF_THREADS] ;
 static tcbType *current_tcb ;
 
-static int32_t thread_stack[NUM_OF_THREADS][STACKSIZE];
+static uint32_t thread_stack[NUM_OF_THREADS][STACKSIZE];
 
 
 static uint32_t period_tick ;
+
+static uint32_t __uCurrentTaskIdx = 0;
+static uint32_t __puTasksPSP[OsCfg_MAX_NUM_OF_TASKS] = {0};
+uint32_t pt ;
+
+uint32_t get_current_psp() {
+  return __puTasksPSP[__uCurrentTaskIdx];
+}
+
+void save_current_psp(uint32_t psp) {
+  __puTasksPSP[__uCurrentTaskIdx] = psp;
+}
+
 
 /*************** END GLOABAL VARIABLES  *****************/
 
@@ -75,56 +87,36 @@ void osSchedulerLaunch(void) ;
 void osKernelStackInit(int thread_i)
 {
 
-	/*uint32_t* psp = (uint32_t*)(STACK_START + (thread_i+1)*STACKSIZE);
-	*(++psp) = 0x01000000u; // Dummy xPSR, just enable Thumb State bit;
-  *(++psp) = (int32_t)(OsCfg_TCBs[thread_i].Task_Ptr); // PC
-  *(++psp) = 0xFFFFFFFDu; // LR with EXC_RETURN to return to Thread using PSP
-  *(++psp) = 0x12121212u; // Dummy R12
-  *(++psp) = 0x03030303u; // Dummy R3
-  *(++psp) = 0x02020202u; // Dummy R2
-  *(++psp) = 0x01010101u; // Dummy R1
-  *(++psp) = 0x00000000u; // Dummy R0
-  *(++psp) = 0x11111111u; // Dummy R11
-  *(++psp) = 0x10101010u; // Dummy R10
-  *(++psp) = 0x09090909u; // Dummy R9
-  *(++psp) = 0x08080808u; // Dummy R8
-  *(++psp) = 0x07070707u; // Dummy R7
-  *(++psp) = 0x06060606u; // Dummy R6
-  *(++psp) = 0x05050505u; // Dummy R5
-  *(++psp) = 0x04040404u; // Dummy R4
-	*/
+	
+	__uCurrentTaskIdx = thread_i ;
+	uint32_t *_psp ;
+	_psp = &thread_stack[thread_i][STACKSIZE -16]; 
+	save_current_psp((uint32_t) (&thread_stack[thread_i][STACKSIZE -16])) ;
+	*(--_psp) = 0x01000000 ; // xPSR
+	*(--_psp) = (int32_t)(OsCfg_TCBs[thread_i].Task_Ptr); ; // handler PC R15
+	*(--_psp) = 0xAAAAAAAF ; // LR R14
+	*(--_psp) = 0xAAAAAAA9 ; // SP R12
+	*(--_psp) = 0xAAAAAAA8 ; // R3
+	*(--_psp) = 0xAAAAAAA7 ; // R2
+	*(--_psp) = 0xAAAAAAA6 ;  // R1
+	*(--_psp) = 0xAAAAAAA5 ;// R0
 
-	tcbs[thread_i].stack_pointer = &thread_stack[thread_i][STACKSIZE -16];
-	thread_stack[thread_i][STACKSIZE -1] = 0x01000000 ;
+	*(--_psp) = 0xAAAAAAA4 ; //R11
+	*(--_psp) = 0xAAAAAAA3 ;
+	*(--_psp) = 0xAAAAAAA2 ;
+	*(--_psp) = 0xAAAAAAA1 ;
+	*(--_psp) = 0xAAAAAAA0 ;
+	*(--_psp) = 0xAAAAAAAA ;
+	*(--_psp) = 0xAAAAAAAA ;
+	*(--_psp) = 0xAAAAAAAA ; //R4
+	__puTasksPSP[thread_i] = (uint32_t)_psp ;
+	OsCfg_TCBs[thread_i].Stack_Pointer = _psp ;
 	
 	
-	thread_stack[thread_i][STACKSIZE -3] = 0xAAAAAAAF ; /* LR R14 */
-	thread_stack[thread_i][STACKSIZE -4] = 0xAAAAAAA9 ; /* R12 */
-	thread_stack[thread_i][STACKSIZE -5] = 0xAAAAAAA8 ; /* R3 */
-	thread_stack[thread_i][STACKSIZE -6] = 0xAAAAAAA7 ; /* R2 */
-	thread_stack[thread_i][STACKSIZE -7] = 0xAAAAAAA6 ; /* R1 */
-	thread_stack[thread_i][STACKSIZE -8] = 0xAAAAAAA5 ; /* R0 */
-
-	thread_stack[thread_i][STACKSIZE -9] = 0xAAAAAAA4 ; /* R11 */
-	thread_stack[thread_i][STACKSIZE -10] = 0xAAAAAAA3 ; /* R10 */
-	thread_stack[thread_i][STACKSIZE -11] = 0xAAAAAAA2 ; /* R9 */
-	thread_stack[thread_i][STACKSIZE -12] = 0xAAAAAAA1 ; /* R8 */
-	thread_stack[thread_i][STACKSIZE -13] = 0xAAAAAAA0 ; /* R7 */
-	thread_stack[thread_i][STACKSIZE -14] = 0xAAAAAAAA ; /* R6 */
-	thread_stack[thread_i][STACKSIZE -15] = 0xAAAAAAAA ; /* R5 */
-	thread_stack[thread_i][STACKSIZE -16] = 0xAAAAAAAA ; /* R4 */
 	
-}
-uint32_t __uCurrentTaskIdx = 0;
-uint32_t __puTasksPSP[NUM_OF_THREADS] = {0};
 
-uint32_t get_current_psp() {
-  return __puTasksPSP[__uCurrentTaskIdx];
 }
 
-void save_current_psp(uint32_t psp) {
-  __puTasksPSP[__uCurrentTaskIdx] = psp;
-}
 void osInitTaskStack(uint8_t threadID)
 {
 	
@@ -162,10 +154,10 @@ StatusType osKernelAddPeriodicThreads()
 	return E_OK ;
 }
 
-#endif 
+#endif
 
 
-#ifdef PERIODIC_SCHEDULER_PRIO
+#ifdef  PERIODIC_SCHEDULER_PRIO
 
 
 StatusType osKernelAddThreads(void)
@@ -186,13 +178,35 @@ StatusType osKernelAddThreads(void)
 	{
 		tcbs[i].blocked = 0 ;
 		tcbs[i].sleepTime = 0 ;
+		tcbs[i].priority = (int32_t)(OsCfg_TCBs[i].priority) ;
 	}
+	
+	__enable_irq() ;
 	
 	return E_OK ;
 }
+
+void osSchedulerPeriodicPrio(void)
+{
+	tcbType * _currentPt = current_tcb ;
+	tcbType * nextThreadToRun = _currentPt ;
+	uint8_t highestPrioound = 255 ;
+	do
+	{
+		_currentPt = _currentPt->next_tcb ;
+		if ((_currentPt->priority < highestPrioound) &&
+			(_currentPt->sleepTime == 0 ))
+		{
+			nextThreadToRun = _currentPt ;
+			highestPrioound = _currentPt->priority ;
+		}
+	}while(_currentPt !=current_tcb);
+	current_tcb = nextThreadToRun ;
+
+}
 #endif
 
-// this function to replace osKernelAddThread(void (*task0)(void), void (*task1)(void), void(*task2)(void))
+#ifdef ROUND_ROBIN
 
 StatusType osKernelAddThreaddraft()
 {
@@ -216,45 +230,7 @@ StatusType osKernelAddThreaddraft()
     __enable_irq();	
 	return E_OK ;
 }
-
-/*
-int osKernelAddThread(void (*task0)(void), void (*task1)(void), void(*task2)(void))
-{
-
-    // This is a critical code section that cannot be interrupted. Interrupts
-    // are then disabled while the TCB linked list is created.
-    __disable_irq();
-
-    // Circular linked list is required; this is done by linking
-    // TCB 0 --> 1, TCB 1 --> 2, TCB 2 --> 0
-    tcbs[0].next_tcb = &tcbs[1];
-    tcbs[1].next_tcb = &tcbs[2];
-    tcbs[2].next_tcb = &tcbs[0];
-
-    // Initialize the stack for a thread and copy the function pointer to
-    // address that will be copied to the PC. This is so that the thread
-    // will begin executing when it is first scheduled to execute.
-    osKernelStackInit(0);
-    thread_stack[0][STACKSIZE - 2] = (int32_t)(task0); // Type cast from void
-                                                         // to numerical addr.
-
-    osKernelStackInit(1);
-    thread_stack[1][STACKSIZE - 2] = (int32_t)(task1);
-
-    osKernelStackInit(2);
-    thread_stack[2][STACKSIZE - 2] = (int32_t)(task2);
-
-    // Initially points to the first thread:
-    current_tcb = &tcbs[0];
-
-    // Critical section is now done so interrupts can be enabled again:
-    __enable_irq();
-
-    return 1;
-
-
-}
-*/
+#endif
 
 void osKernelInit(void)
 {
@@ -276,7 +252,8 @@ void osKernelLaunch(uint32_t quanta)
 	SYSPRI3 = (SYSPRI3 &0x00FFFFFF) | 0xE0000000 ;
 	SysTick->CTRL = 0x00000007 ;
 	
-	osSchedulerLaunch() ;
+	//osSchedulerLaunch() ;
+	osStartSheduler() ;
 	
 }
 
@@ -307,13 +284,6 @@ void osSchedulerPeriodicRR(void)
 }
 #endif
 
-#ifdef PERIODIC_SCHEDULER_PRIO
-void osSchedulerPeriodicPrio(void)
-{
-
-}
-#endif
-
 #ifndef PERIODIC_SCHEDULER
 void osSchedulerRoundRobin(void)
 {
@@ -341,7 +311,7 @@ __attribute__((naked)) void SysTick_Handler(void)
 	__ASM("PUSH    {R4-R11}") ; // R0, R1, R2, R3, R12, LR, PC, PSR are automatically saved in the stack memory
 	__ASM("LDR     R0, =current_tcb") ;
 	__ASM("LDR     R1, [R0]") ;
-	__ASM("STR     SP, [R1]") ;
+	__ASM("STR     SP, [R1]") ; // store the value of the address saved in SP to R1
 	
 	#ifdef PERIODIC_SCHEDULER
 	__ASM("PUSH {R0, LR}") ;
@@ -350,7 +320,7 @@ __attribute__((naked)) void SysTick_Handler(void)
 	__ASM("POP {R0, LR}");
 	__ASM("LDR R1, [R0]");
 	#else
-	__ASM("LDR		R1, [R1, #4]") ;
+	__ASM("LDR		R1, [R1, #4]") ; // @R1 <- *(R1+4)
 	__ASM("STR		R1, [R0]") ;	
 	#endif 
 	__ASM("LDR		SP, [R1]") ;
@@ -366,9 +336,10 @@ __attribute__((naked)) void SysTick_Handler(void)
 
 void osSchedulerLaunch(void)
 {
-	__ASM(" LDR     R0, =current_tcb") ;
-	__ASM("LDR     R2, [R0] ") ;
-	__ASM(" LDR     SP, [R2]") ;
+	__ASM(" LDR     R0, =current_tcb") ; // load the address of current_tcb
+	__ASM("LDR     R2, [R0] ") ; // load the value stored at the address in R0
+	__ASM(" LDR     SP, [R2]") ; // load SP with the value stored in address saved in R2 
+
 	__ASM("POP     {R4-R11}") ;
 	__ASM("POP     {R0-R3}") ;
 	__ASM("POP		{R12}") ;
@@ -379,4 +350,29 @@ void osSchedulerLaunch(void)
 	__ASM("CPSIE	I") ;
 	__ASM("BX		LR") ;
 
+}
+
+void osStartSheduler(void)
+{
+	__uCurrentTaskIdx =0 ;
+	 pt = get_current_psp() ;
+	__ASM volatile("LDR  R0, =pt") ; // save the address of pt to R0 
+	__ASM volatile("LDR SP, [R0]");  // load the value stored in the address saved in R0 
+	
+	__ASM volatile("POP     {R4-R11}") ;
+	__ASM volatile("POP     {R0-R3}") ;
+	__ASM volatile("POP		{R12}") ;
+	__ASM volatile("ADD     SP, SP, #4") ;
+	__ASM volatile("POP     {LR}") ;
+	__ASM volatile("ADD     SP, SP, #4 ") ;
+	
+	//__ASM("BL osSetTaskStateRunning");
+	__ASM volatile("CPSIE	I") ;
+	__ASM volatile("BX		LR") ;	
+	__ASM("BL osSetTaskStateRunning");
+}
+
+void osSetTaskStateRunning()
+{
+	OsCfg_TCBs[__uCurrentTaskIdx].state = RUNNING ;
 }

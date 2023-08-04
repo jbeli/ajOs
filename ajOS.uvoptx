@@ -125,7 +125,7 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGTARM</Key>
-          <Name>(1010=-1845,112,-1395,669,0)(1007=-1,-1,-1,-1,0)(1008=-588,450,-212,686,0)(1009=-1,-1,-1,-1,0)(1012=-1,-1,-1,-1,0)</Name>
+          <Name>(1010=-1845,112,-1395,669,0)(1007=-1815,145,-1628,420,0)(1008=-588,450,-212,686,0)(1009=-1,-1,-1,-1,0)(1012=-1,-1,-1,-1,0)</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -163,22 +163,27 @@
         <Ww>
           <count>2</count>
           <WinNumber>1</WinNumber>
-          <ItemText>thread_stack</ItemText>
+          <ItemText>__puTasksPSP</ItemText>
         </Ww>
         <Ww>
           <count>3</count>
           <WinNumber>1</WinNumber>
-          <ItemText>&amp;thread_stack[1][50-16]</ItemText>
+          <ItemText>&amp;current_tcb</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>1</WinNumber>
-          <ItemText>tcbs</ItemText>
+          <ItemText>_psp</ItemText>
         </Ww>
         <Ww>
           <count>5</count>
           <WinNumber>1</WinNumber>
-          <ItemText>psp</ItemText>
+          <ItemText>__puTasksPSP</ItemText>
+        </Ww>
+        <Ww>
+          <count>6</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>OsCfg_TCBs</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>
@@ -197,7 +202,7 @@
         <Mm>
           <WinNumber>1</WinNumber>
           <SubType>2</SubType>
-          <ItemText>0x2000019C</ItemText>
+          <ItemText>0x20000198</ItemText>
           <AccSizeX>0</AccSizeX>
         </Mm>
       </MemoryWindow1>
@@ -205,7 +210,7 @@
         <Mm>
           <WinNumber>2</WinNumber>
           <SubType>2</SubType>
-          <ItemText>0x200000FC</ItemText>
+          <ItemText>0x20000104</ItemText>
           <AccSizeX>0</AccSizeX>
         </Mm>
       </MemoryWindow2>

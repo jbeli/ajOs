@@ -91,7 +91,12 @@ int main(void)
 	osKernelAddPeriodicThreads() ;
 	#endif
 	osKernelInit();
+	#ifdef ROUND_ROBIN
 	osKernelAddThreaddraft() ;
+	#endif
+	#ifdef PERIODIC_SCHEDULER_PRIO
+	
+	#endif
 	//osKernelAddThread(&OsTask_TaskA, &OsTask_TaskB, &OsTask_TaskC ) ;
 	//osKernelAddPeriodicThreads();
 	osKernelLaunch(QUANTA) ;
